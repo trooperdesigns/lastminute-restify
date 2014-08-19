@@ -21,12 +21,11 @@ var server = restify.createServer({
 
 var RESOURCES = Object.freeze({
     INITIAL: "/",
-    TOKEN: "/token",
+    TOKEN: "/token", // also the login and callback after signup
     PUBLIC: "/public",
     SECRET: "/secret",
     USERS: "/users",
     EVENTS: "/events",
-    LOGIN: "/login"
 });
 
 server.use(restify.authorizationParser());
@@ -65,7 +64,7 @@ server.get(RESOURCES.PUBLIC, function (req, res) {
     });
 });
 
-// use this example for "need token"
+// use this as example for "needs auth token"
 server.get(RESOURCES.SECRET, function (req, res) {
     if (!req.clientId) {
         return res.sendUnauthenticated();
@@ -139,13 +138,12 @@ server.post(RESOURCES.USERS, function (req, res, next){
 });
 
 // get list of all events
-server.get(RESOURCES.EVENTS, function (req, res){
-
-    if (!req.clientId) {
-        return res.sendUnauthenticated();
-    }
-
+server.get(RESOURCES.EVENTS, function (req, res, next){
     res.contentType = "application/hal+json";
+    
+    /*if (!req.username) {
+        return res.sendUnauthenticated();
+    }*/
 
     models.Event.find({}, function(err, events){
         res.send(events);
@@ -162,39 +160,45 @@ server.get(RESOURCES.EVENTS + "/:id", function (req, res){
         } else {
             res.send(404);
         }
-
         
     });
 });
 
 // create new event --> MUST BE SIGNED IN / HAVE AUTH TOKEN
-server.post(RESOURCES.USERS, function (req, res, next){
+server.post(RESOURCES.EVENTS, function (req, res, next){
     res.contentType = "application/hal+json";
 
-    console.log(req.body.username);
+    console.log(req.body.name);
 
-    models.User.findOne({username: req.body.username}, function(err, user){
-
-        if(!user){
-            var user = new models.User();
-            user.username = req.body.username;
-            user.password = req.body.password;
-            user.email = req.body.email;
-            user.created = Date.now();
-
-            user.save(function(err){
-                if(!err){
-                    console.log("User: " + user.username + " saved successfully");
-                    res.send(201);
-                } else {
-                    console.log("error");
-                }
-            });
+    var newEvent = new models.Event();
+    newEvent.name = req.body.name;
+    newEvent.date = new Date(req.body.date);
+    newEvent.location = req.body.location;
+    newEvent.created = Date.now();
+    newEvent.usersInvited = req.body.usersInvited;
+    newEvent.save(function(err){
+        if(!err){
+            console.log("Event: " + newEvent.name + " created successfully");
+            res.send(newEvent);
         } else {
-            console.log("User already exists");
-            res.send(200);
+            console.log("Error creating event");
+            res.send(400);
         }
     });
+});
+
+// update event info
+server.put(RESOURCES.EVENTS, function (req, res, next){
+    res.contentType = "application/hal=json";
+
+    if (!req.username) {
+        return res.sendUnauthenticated();
+    }
+
+    res.send(req.authorization);
+
+
+
 });
 
 server.listen(8080, function(){

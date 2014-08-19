@@ -20,7 +20,7 @@ var UserSchema = new Schema({
 
 // event model
 var EventSchema = new Schema({
-    id: Number,
+    creator: String,
     name: String,
     date: Date,
     location: String,
@@ -50,6 +50,7 @@ User.findOne({username: 'trooper'}, function(err, user){
         user.password = "designs";
         user.email = "trooper@designs.com";
         user.created = Date.now();
+        user.auth_token = "";
 
         user.save(function(err){
             if(!err){
@@ -65,6 +66,7 @@ User.findOne({username: 'trooper'}, function(err, user){
 Event.findOne({name: 'default'}, function(err, newEvent){
     if(!newEvent){
         var newEvent = new Event();
+        newEvent.creator = "trooper";
         newEvent.name = "default";
         newEvent.date = new Date("2014-08-12");
         newEvent.location = "location 123";

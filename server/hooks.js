@@ -29,35 +29,30 @@ function generateToken(data) {
 }
 
 exports.grantClientToken = function (credentials, req, cb) {
-    /*
-    console.log("username: " + req.username);
-    console.log("password: " + req.authorization);
-    var isValid1 = models.User.findOne({username: req.username}, function (err, user){
-        console.log(user);
-        return user;
-    }) ;
-    var isValid2 = isValid1.password === credentials.password;
-
-    var isValid = isValid1 && isValid2;
-
-    console.log(isValid);
-    */
-    var isValid = _.has(database.clients, credentials.clientId) &&
-                  database.clients[credentials.clientId].secret === credentials.clientSecret;
-    if (isValid) {
+    
+    console.log("username: " + credentials.clientId);
+    console.log("password: " + credentials.clientSecret);
+    var isValid1 = models.User.findOne({username: credentials.clientId, password: credentials.clientSecret}, function (err, user){
         // If the client authenticates, generate a token for them and store it so `exports.authenticateToken` below
         // can look it up later.
 
         var token = generateToken(credentials.clientId + ":" + credentials.clientSecret);
         database.tokensToClientIds[token] = credentials.clientId;
 
-        // Call back with the token so Restify-OAuth2 can pass it on to the client.
-        return cb(null, token);
-    }
+        models.User.update({username : user.username}, {auth_token : token}, function(){
+            if(!err){
+                return cb(null, token);
+            } else {
+                // Call back with `false` to signal the username/password combination did not authenticate.
+                // Calling back with an error would be reserved for internal server error situations.             
+                cb(null, false);
+            }
+        });
+    }) ;
 
-    // Call back with `false` to signal the username/password combination did not authenticate.
-    // Calling back with an error would be reserved for internal server error situations.
-    cb(null, false);
+
+
+    
 };
 
 exports.authenticateToken = function (token, req, cb) {
