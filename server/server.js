@@ -188,7 +188,7 @@ server.post(RESOURCES.EVENTS, function (req, res, next){
 });
 
 // update event info
-server.put(RESOURCES.EVENTS, function (req, res, next){
+server.put(RESOURCES.EVENTS + "/:id", function (req, res, next){
     res.contentType = "application/hal=json";
 
     if (!req.username) {
@@ -196,11 +196,34 @@ server.put(RESOURCES.EVENTS, function (req, res, next){
     }
 
     res.send(req.authorization);
-
-
-
 });
 
-server.listen(8080, function(){
-    console.log("Listening on port: " + 8080)
+// remove event by id, returns deleted event
+// should only be able to be deleted by creator
+server.del(RESOURCES.EVENTS + "/:id", function rm(req, res, next){
+
+    if (!req.clientId) {
+        return res.sendUnauthenticated();
+    }
+
+    models.Event.findOne({_id : req.params.id}, function(err, lmevent){
+        console.log("creator: " + lmevent.creator + "  username: " + req.clientId);
+        if(lmevent){
+            if(lmevent.creator === req.username){
+                res.send(lmevent);
+                lmevent.remove();
+            } else {
+                res.send("You are not the creator. Cannot delete event");
+            }            
+        } else {
+            res.send("Could not find event");
+        }
+        // if event creator = user who sent request, delete
+
+    });
+    
+});
+
+server.listen(3000, function(){
+    console.log("Listening on port: " + 3000)
 });

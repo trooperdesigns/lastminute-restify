@@ -21,7 +21,8 @@
         "lint": "jshint lib && jshint examples"
     },
     "dependencies": {
-        "underscore": "1.x"
+        "underscore": "1.x",
+        "mongoose":"*"
     },
     "peerDependencies": {
         "restify": "2.x"
