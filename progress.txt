@@ -1,0 +1,13 @@
+current:
+- GET all users
+- GET single user
+- POST new user (signup)
+- POST token (login/get auth token)
+- PUT user (update user information, must be authenticated as user you are trying to modify)
+- GET all events
+- GET single event
+- 
+
+TODO:
+- PUT event
+- 

@@ -25,7 +25,7 @@ var RESOURCES = Object.freeze({
     PUBLIC: "/public",
     SECRET: "/secret",
     USERS: "/users",
-    EVENTS: "/events",
+    EVENTS: "/events"
 });
 
 server.use(restify.authorizationParser());
@@ -94,16 +94,15 @@ server.get(RESOURCES.USERS, function (req, res){
 });
 
 // get single user
+// TODO: see someone's info who isn't the person who was authenticated --> only see basic info, i.e. username, name, etc.
 server.get(RESOURCES.USERS + "/:id", function (req, res){
 
     models.User.findOne({_id : req.params.id}, function(err, user){
-        if(!err){
+        if(user){
             res.send(user);
         } else {
             res.send(404);
         }
-
-        
     });
 });
 
@@ -111,7 +110,7 @@ server.get(RESOURCES.USERS + "/:id", function (req, res){
 server.post(RESOURCES.USERS, function (req, res, next){
     res.contentType = "application/hal+json";
 
-    console.log(req.body.username);
+    //console.log(req.body.username);
 
     models.User.findOne({username: req.body.username}, function(err, user){
 
@@ -127,7 +126,7 @@ server.post(RESOURCES.USERS, function (req, res, next){
                     console.log("User: " + user.username + " saved successfully");
                     res.send(201);
                 } else {
-                    console.log("error");
+                    console.log("could not save user");
                 }
             });
         } else {
@@ -137,8 +136,33 @@ server.post(RESOURCES.USERS, function (req, res, next){
     });
 });
 
+// update user info
+// user has to be authenticated with the same clientId
+server.put(RESOURCES.USERS + "/:id", function (req, res, next){
+    res.contentType = "application/hal+json";
+
+    models.User.findOne({_id : req.params.id}, function (err, user){
+        //console.log("req id: " + req.clientId);
+        //console.log("params id: " + user.username);
+        if (user) {
+            if(user.username === req.clientId){
+                console.log("Edit allowed");
+            } else {
+                console.log("Edit not allowed");
+            }
+        }
+    });
+});
+
 // get list of all events
 server.get(RESOURCES.EVENTS, function (req, res, next){
+
+    console.log("clientId: " + req.clientId);
+
+    if (!req.username) {
+        return res.sendUnauthenticated();
+    }
+
     res.contentType = "application/hal+json";
     
     /*if (!req.username) {
@@ -166,12 +190,18 @@ server.get(RESOURCES.EVENTS + "/:id", function (req, res){
 
 // create new event --> MUST BE SIGNED IN / HAVE AUTH TOKEN
 server.post(RESOURCES.EVENTS, function (req, res, next){
+
+    if (!req.username) {
+        return res.sendUnauthenticated();
+    }
+
     res.contentType = "application/hal+json";
 
     console.log(req.body.name);
 
     var newEvent = new models.Event();
     newEvent.name = req.body.name;
+    newEvent.creator = req.clientId;
     newEvent.date = new Date(req.body.date);
     newEvent.location = req.body.location;
     newEvent.created = Date.now();
@@ -194,6 +224,9 @@ server.put(RESOURCES.EVENTS + "/:id", function (req, res, next){
     if (!req.username) {
         return res.sendUnauthenticated();
     }
+
+    var name = req.body.name;
+    var date = req.body.date;
 
     res.send(req.authorization);
 });
@@ -224,6 +257,6 @@ server.del(RESOURCES.EVENTS + "/:id", function rm(req, res, next){
     
 });
 
-server.listen(3000, function(){
-    console.log("Listening on port: " + 3000)
+server.listen(8080, function(){
+    console.log("Listening on port: " + 8080)
 });

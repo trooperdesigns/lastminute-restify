@@ -1,7 +1,13 @@
 var mongoose = require('mongoose');
 var config = require('./config');
 
-var db = mongoose.connect('mongodb://localhost:27017/restify'), Schema = mongoose.Schema;
+var db = mongoose.connect('mongodb://localhost:27017/restify', function (err){
+    if (err){
+        console.log("Error: could not connect to database");        
+    } else {
+        console.log("Successfully connected to database");
+    }
+}), Schema = mongoose.Schema;
 
 // user model
 var UserSchema = new Schema({
@@ -11,6 +17,7 @@ var UserSchema = new Schema({
     password: String,
     eventInvites: Array,
     created: Date,
+    parseUser: String,
     fbUser: String,
     googleUser: String,
     twitterUser: String,
