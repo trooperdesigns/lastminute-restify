@@ -10,4 +10,4 @@ current:
 
 TODO:
 - PUT event
-- 
+- when user signs up, auto create parse account & store it to mongodb
