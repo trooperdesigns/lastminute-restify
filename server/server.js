@@ -256,8 +256,13 @@ server.post(RESOURCES.EVENTS, function (req, res, next){
 
             // find devices associated with the user
             var pushQuery = new Parse.Query(Parse.Installation);
-            pushQuery.equalTo("user", "test@test.com");
-            pushQuery.equalTo("user", "test2@test.com");
+
+            for(var i = 0; i < newEvent.usersInvited.length; i++){
+                pushQuery.equalTo("user", newEvent.usersInvited[i]);
+            }
+
+            //pushQuery.equalTo("user", "test@test.com");
+            //pushQuery.equalTo("user", "test2@test.com");
             // loop through invited users
 /*            for(var i = 0; i < newEvent.usersInvited.length; i++){
                 pushQuery.equalTo("user", newEvent.usersInvited[i]);
