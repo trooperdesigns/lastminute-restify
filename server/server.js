@@ -4,10 +4,21 @@ var restify = require("restify");
 var restifyOAuth2 = require("../");
 var hooks = require("./hooks");
 var models = require("./models");
-
+var Parse = require('parse').Parse;
 
 // NB: we're using [HAL](http://stateless.co/hal_specification.html) here to communicate RESTful links among our
 // resources, but you could use any JSON linking format, or XML, or even just Link headers.
+
+Parse.initialize("h2MLeRkYqlmO9e2jE2y1BMysPiPRUuy07Ur8La6A", "97GaGmE01ohzfvapqbLdpNK1AtWTNUpDekPItwCv");
+
+var query = new Parse.Query(Parse.User);
+query.find({
+    success: function(users){
+        for(var i = 0; i < users.length; i++){
+            console.log(users[i].get('username'));
+        }
+    }
+});
 
 var server = restify.createServer({
     name: "Example Restify-OAuth2 Client Credentials Server",
@@ -112,9 +123,26 @@ server.post(RESOURCES.USERS, function (req, res, next){
 
     //console.log(req.body.username);
 
-    models.User.findOne({username: req.body.username}, function(err, user){
+    models.User.findOne({ $or:[{ username : req.body.username}, {email : req.body.email} ]}, function(err, user){
 
         if(!user){
+
+            // create a parse user when they sign up for lastminute
+            var parseUser = new Parse.User();
+            parseUser.set("username", req.body.username);
+            parseUser.set("password", req.body.password);
+            parseUser.set("email", req.body.email);
+            parseUser.set("phone", req.body.phone);
+
+            parseUser.signUp(null, {
+                success: function(user){
+                    console.log("Parse user : " + user.get("username") + " created");
+                }, 
+                error: function(user, error) {
+                    console.log("Error: " + error.code + " " + error.message + " - could not create parse user: " + user.get("username"));
+                }
+            });
+
             var user = new models.User();
             user.username = req.body.username;
             user.password = req.body.password;
@@ -130,7 +158,7 @@ server.post(RESOURCES.USERS, function (req, res, next){
                 }
             });
         } else {
-            console.log("User already exists");
+            console.log("User or email already exists");
             res.send(200);
         }
     });

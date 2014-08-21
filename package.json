@@ -22,7 +22,8 @@
     },
     "dependencies": {
         "underscore": "1.x",
-        "mongoose":"*"
+        "mongoose":"*",
+        "parse":"*"
     },
     "peerDependencies": {
         "restify": "2.x"

@@ -9,5 +9,5 @@ current:
 - 
 
 TODO:
-- PUT event
+- PUT event (select which attributes of event/user to update)
 - when user signs up, auto create parse account & store it to mongodb
