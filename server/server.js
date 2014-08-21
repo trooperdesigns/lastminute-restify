@@ -101,7 +101,6 @@ server.get(RESOURCES.USERS, function (req, res){
         //console.log(users[0]);
         res.send(users);
     });
-
 });
 
 // get single user
@@ -127,36 +126,43 @@ server.post(RESOURCES.USERS, function (req, res, next){
 
         if(!user){
 
-            // create a parse user when they sign up for lastminute
-            var parseUser = new Parse.User();
-            parseUser.set("username", req.body.username);
-            parseUser.set("password", req.body.password);
-            parseUser.set("email", req.body.email);
-            parseUser.set("phone", req.body.phone);
-
-            parseUser.signUp(null, {
-                success: function(user){
-                    console.log("Parse user : " + user.get("username") + " created");
-                }, 
-                error: function(user, error) {
-                    console.log("Error: " + error.code + " " + error.message + " - could not create parse user: " + user.get("username"));
-                }
-            });
-
             var user = new models.User();
             user.username = req.body.username;
             user.password = req.body.password;
             user.email = req.body.email;
             user.created = Date.now();
 
-            user.save(function(err){
+            user.save(function(err, user){
                 if(!err){
                     console.log("User: " + user.username + " saved successfully");
-                    res.send(201);
+
+                    // create and save parse user account
+                    // add mongo _id to parseUser for later querying
+                    var parseUser = new Parse.User();
+                    parseUser.set("username", req.body.username);
+                    parseUser.set("password", req.body.password);
+                    parseUser.set("email", req.body.email);
+                    parseUser.set("phone", req.body.phone);
+                    parseUser.set("LMID", String(user._id));
+
+                    parseUser.signUp(null, {
+                        success: function(user){
+                            console.log("Parse user : " + user.get("username") + " created");
+                        }, 
+                        error: function(user, error) {
+                            console.log("Error: " + error.code + " " + error.message + " - could not create parse user: " + user.get("username"));
+                        }
+                    });
+
+                    // auto login after signing up
+
+
+                    res.send(user);
                 } else {
                     console.log("could not save user");
                 }
             });
+
         } else {
             console.log("User or email already exists");
             res.send(200);
@@ -238,6 +244,64 @@ server.post(RESOURCES.EVENTS, function (req, res, next){
         if(!err){
             console.log("Event: " + newEvent.name + " created successfully");
             res.send(newEvent);
+            console.log("Sending push notification to all users invited..");
+
+            // pick users by their lastminute id so push notifications are sent to all devices of the user
+            // TODO: loop through users who are invited
+            var userQuery = new Parse.Query(Parse.User);
+            userQuery.equalTo("LMID", "53f621d10b73b4841188eea1"); // find users with LMID x
+
+
+            
+
+            // find devices associated with the user
+            var pushQuery = new Parse.Query(Parse.Installation);
+            pushQuery.equalTo("user", "test@test.com");
+            pushQuery.equalTo("user", "test2@test.com");
+            // loop through invited users
+/*            for(var i = 0; i < newEvent.usersInvited.length; i++){
+                pushQuery.equalTo("user", newEvent.usersInvited[i]);
+                console.log('adding ' + newEvent.usersInvited[i] + ' to query');
+            }*/
+
+            //pushQuery.equalTo("user", "test123");
+            //pushQuery.matchesQuery('user', userQuery);
+
+            // find all users with specific LMID and get their usernames
+            userQuery.find({
+                success: function(user){
+
+                    // find all users and add them to the query
+                    for(var i = 0; i < user.length; i++){
+                        console.log("user found: " + user[i].get('username'));
+                        //pushQuery.equalTo("user", user[i].get('username'));
+                    }
+                    
+                }, error: function(error){
+                    console.log(error.code + " : " + error.message);
+                }
+            });
+
+            // Send push notification to query (all users invited to event)
+            Parse.Push.send({
+                where: pushQuery,
+                data: {
+                    alert: "You have been invited to event: " + newEvent.name
+                }
+            },  {
+                success: function(user) {
+                    // Push was successful
+                    console.log("Successfully sent push notification to invited users");
+                    //console.log(user);
+
+                },
+                error: function(error) {
+                    // Handle error
+                    console.log("Error" + error.code + " : " + error.message);
+                }
+            });
+
+
         } else {
             console.log("Error creating event");
             res.send(400);
@@ -255,6 +319,7 @@ server.put(RESOURCES.EVENTS + "/:id", function (req, res, next){
 
     var name = req.body.name;
     var date = req.body.date;
+    var location = req.body.location;
 
     res.send(req.authorization);
 });
